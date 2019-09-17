@@ -47,14 +47,35 @@ mashableData <- mashableData %>%
 ui <- fluidPage(
   titlePanel("Online News Popularity"),
   
-  DT::dataTableOutput("table")
+  # Display filters in sidebar
+  # Create checkboxes to filter data by data channel
+  sidebarLayout(position = "left",
+    sidebarPanel(
+      fluidRow(
+        column(width = 4, wellPanel(
+          checkboxGroupInput("data_channel_filter", "Data Channel",
+                       c("Lifestyle", "Entertainment", "Social Media", "Business", "Tech", "World")
+          )
+        )
+        )
+      )    
+    ),
+    # Display data table in main panel
+    mainPanel(
+      DT::dataTableOutput("table")
+    )
+  )
 )
 
 # Initialize the server
 server <- function(input, output) {
 
-  output$table <- DT::renderDataTable(DT::datatable({mashableData}))
-  
+  # Filter data from selected inputs and display data table
+  output$table <- DT::renderDataTable(DT::datatable({
+    filteredData <- mashableData[mashableData$data_channel %in% input$data_channel_filter,]
+    filteredData
+    })
+  )
 }
 
 # Return a shiny app object
