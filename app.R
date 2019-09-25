@@ -51,18 +51,23 @@ ui <- fluidPage(
   # Create checkboxes to filter data by data channel
   sidebarLayout(position = "left",
     sidebarPanel(
-      fluidRow(
-        column(width = 4, wellPanel(
-          checkboxGroupInput("data_channel_filter", "Data Channel",
-                       c("Lifestyle", "Entertainment", "Social Media", "Business", "Tech", "World")
-          )
-        )
-        )
-      )    
+      checkboxGroupInput("data_channel_filter", "Data Channel",
+                         choices = c("Lifestyle", "Entertainment", "Social Media", "Business", "Tech", "World"),
+                         selected = c("Lifestyle", "Entertainment", "Social Media", "Business", "Tech", "World")
+      ),
+      checkboxGroupInput("weekday_filter", "Weekdays",
+                         choices = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
+                         selected = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+      ) 
     ),
     # Display data table in main panel
     mainPanel(
-      DT::dataTableOutput("table")
+      tabsetPanel(type = "tabs",
+                  tabPanel("Table", DT::dataTableOutput("table")),
+                  #tabPanel("Summary", tableOutput("summary"))
+                  tabPanel("Plot", plotOutput("plot"))
+                  #tabPanel("Word Cloud", tableOutput("word_cloud"))
+      )
     )
   )
 )
@@ -72,10 +77,20 @@ server <- function(input, output) {
 
   # Filter data from selected inputs and display data table
   output$table <- DT::renderDataTable(DT::datatable({
-    filteredData <- mashableData[mashableData$data_channel %in% input$data_channel_filter,]
-    filteredData
+      filteredData <- mashableData[mashableData$data_channel %in% input$data_channel_filter,]
+      filteredData <- filteredData[filteredData$weekday %in% input$weekday_filter,]
+      filteredData
     })
   )
+  
+  # Filter data and create plots
+  output$plot <- renderPlot({
+    filteredData <- mashableData[mashableData$data_channel %in% input$data_channel_filter,]
+    filteredData <- filteredData[filteredData$weekday %in% input$weekday_filter,]
+    ggplot(filteredData) +
+      geom_bar(aes(x = weekday, y = shares, fill = data_channel), stat = "identity") +
+      labs(title = "Number of Total Article Shares by Weekday") 
+  })
 }
 
 # Return a shiny app object
