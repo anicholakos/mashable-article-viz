@@ -2,6 +2,9 @@ library(shiny)
 library(DT)
 library(ggplot2)
 library(tidyverse)
+library(corrgram)
+
+#options(scipen = 999)
 
 # Add column values to better organize data
 mashableData <- read.csv(file="OnlineNewsPopularity.csv", header=TRUE, sep=",")
@@ -43,19 +46,33 @@ mashableData <- mashableData %>%
                                                           ifelse(data_channel_is_tech == 1, 5,
                                                                  ifelse(data_channel_is_world == 1, 6, NA)))))))
 
+# For ordering days chronologically on plot axis
+mashableData$weekday <- as.character(mashableData$weekday)
+mashableData$weekday <- factor(mashableData$weekday, levels=unique(mashableData$weekday))
+
 # Initialize the UI
 ui <- fluidPage(
   titlePanel("Online News Popularity"),
   
   # Display filters in sidebar
-  # Create checkboxes to filter data by data channel
+  # Create checkboxes and sliders to filter data 
   sidebarLayout(position = "left",
     sidebarPanel(
-      checkboxGroupInput("data_channel_filter", "Data Channel",
+      sliderInput("shares_filter", "Number of Shares",
+                  min(mashableData$shares), 
+                  max(mashableData$shares),
+                  c(min(mashableData$shares), max(mashableData$shares))
+      ),
+      sliderInput("date_filter", "Timedelta",
+                  min(mashableData$timedelta), 
+                  max(mashableData$timedelta),
+                  c(min(mashableData$timedelta), max(mashableData$timedelta))
+      ),
+      checkboxGroupInput("data_channel_filter", "Category",
                          choices = c("Lifestyle", "Entertainment", "Social Media", "Business", "Tech", "World"),
                          selected = c("Lifestyle", "Entertainment", "Social Media", "Business", "Tech", "World")
       ),
-      checkboxGroupInput("weekday_filter", "Weekdays",
+      checkboxGroupInput("weekday_filter", "Days",
                          choices = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
                          selected = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
       ) 
@@ -64,9 +81,9 @@ ui <- fluidPage(
     mainPanel(
       tabsetPanel(type = "tabs",
                   tabPanel("Table", DT::dataTableOutput("table")),
-                  #tabPanel("Summary", tableOutput("summary"))
-                  tabPanel("Plot", plotOutput("plot"))
-                  #tabPanel("Word Cloud", tableOutput("word_cloud"))
+                  tabPanel("Plot", plotOutput("plot")),
+                  #tabPanel("Word Cloud", tableOutput("word_cloud")),
+                  tabPanel("About", tableOutput("about"))
       )
     )
   )
@@ -89,7 +106,12 @@ server <- function(input, output) {
     filteredData <- filteredData[filteredData$weekday %in% input$weekday_filter,]
     ggplot(filteredData) +
       geom_bar(aes(x = weekday, y = shares, fill = data_channel), stat = "identity") +
-      labs(title = "Number of Total Article Shares by Weekday") 
+      labs(title = "Number of Total Article Shares by Weekday") +
+      theme_bw()
+  })
+  
+  output$summary <- renderTable({
+    
   })
 }
 
